@@ -1,40 +1,71 @@
-import { Search, Bell, User } from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Bell, Mail, Menu, Search, UserRound } from "lucide-react";
+import { apiGet, isUnauthorizedError, redirectToLogin } from "@/lib/api";
+
+type UserProfile = {
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  companyName?: string;
+  id?: string;
+};
 
 export function TopBar() {
+  const [user, setUser] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const data = await apiGet<UserProfile>("/auth/me");
+        setUser(data);
+      } catch (error) {
+        if (isUnauthorizedError(error)) {
+          redirectToLogin();
+        }
+        setUser(null);
+      }
+    }
+    fetchUser();
+  }, []);
+
+  const displayName = user?.companyName || (user?.firstname ? `${user.firstname} ${user.lastname ?? ""}`.trim() : "Loading profile");
+  const displayEmail = user?.email ?? "";
+
   return (
-    <header className="h-20 px-8 flex items-center justify-between sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
-      {/* Search Bar */}
-      <div className="relative w-full max-w-md hidden md:block">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+    <header className="sticky top-0 z-30 flex h-24 items-center justify-between gap-4 bg-background/90 px-5 backdrop-blur-xl lg:px-8">
+      <button className="grid h-11 w-11 place-items-center rounded-full border border-[#e2e5dc] bg-white text-[#252a24] lg:hidden" aria-label="Open menu">
+        <Menu className="h-5 w-5" />
+      </button>
+
+      <div className="relative hidden w-full max-w-xl md:block">
+        <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
         <input
           type="text"
-          placeholder="Search taxes, payments, or documents..."
-          className="w-full h-10 pl-10 pr-12 rounded-full bg-card border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+          placeholder="Search TIN, tax item, payment, receipt"
+          className="h-14 w-full rounded-[1.25rem] border border-[#e2e5dc] bg-white pl-12 pr-14 text-sm font-medium text-[#252a24] shadow-[0_8px_24px_rgba(31,36,30,0.06)] outline-none transition focus:border-primary"
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted/30 px-1.5 font-mono text-[10px] font-medium text-muted">
-            <span className="text-xs">⌘</span>F
-          </kbd>
-        </div>
+        <kbd className="absolute right-4 top-1/2 -translate-y-1/2 rounded-md border border-[#e2e5dc] bg-[#f7f8f4] px-2 py-1 text-xs font-black text-muted">⌘F</kbd>
       </div>
 
-      {/* Right Actions */}
-      <div className="flex items-center gap-4 ml-auto">
-        <button className="relative p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-foreground">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-background"></span>
+      <div className="ml-auto flex items-center gap-3">
+        <button className="grid h-11 w-11 place-items-center rounded-full bg-transparent text-[#252a24] transition hover:bg-white" aria-label="Messages">
+          <Mail className="h-5 w-5" />
         </button>
-        
-        <div className="h-8 w-px bg-border mx-2"></div>
-        
-        <button className="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-border">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <User className="w-4 h-4" />
-          </div>
-          <div className="hidden md:flex flex-col items-start">
-            <span className="text-sm font-semibold text-foreground leading-tight">Tax Payer</span>
-            <span className="text-xs text-muted">ID: 10293847</span>
-          </div>
+        <button className="relative grid h-11 w-11 place-items-center rounded-full bg-transparent text-[#252a24] transition hover:bg-white" aria-label="Notifications">
+          <Bell className="h-5 w-5" />
+          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
+        </button>
+        <div className="h-9 w-px bg-[#e2e5dc]" />
+        <button className="flex items-center gap-3 rounded-full px-1 py-1 pr-3 transition hover:bg-white">
+          <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary ring-2 ring-white">
+            <UserRound className="h-6 w-6" />
+          </span>
+          <span className="hidden text-left sm:block">
+            <span className="block text-sm font-black text-[#252a24]">{displayName}</span>
+            <span className="block text-xs font-medium text-muted">{displayEmail}</span>
+          </span>
         </button>
       </div>
     </header>

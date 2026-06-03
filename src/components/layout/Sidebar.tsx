@@ -1,78 +1,110 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BarChart3, CircleHelp, CreditCard, FileText, LayoutDashboard, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
+import { apiGet, apiPost, isUnauthorizedError, redirectToLogin } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  FileText, 
-  CreditCard, 
-  Settings, 
-  LogOut,
-  HelpCircle
-} from "lucide-react";
 
-const navItems = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Tax Items", href: "/dashboard/taxes", icon: FileText },
+const menuItems = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Tax Items", href: "/dashboard/tax-items", icon: FileText },
   { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { name: "Profile", href: "/dashboard/profile", icon: UserRound },
+  { name: "Analytics", href: "/dashboard", icon: BarChart3 }
 ];
+
+const baseGeneralItems = [
+  { name: "Settings", href: "/dashboard/profile", icon: Settings },
+  { name: "Help", href: "/", icon: CircleHelp }
+];
+
+type AuthUser = {
+  role?: "USER" | "ADMIN" | "SUPER_ADMIN";
+};
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [role, setRole] = useState<AuthUser["role"]>();
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const user = await apiGet<AuthUser>("/auth/me");
+        setRole(user.role);
+      } catch (error) {
+        if (isUnauthorizedError(error)) {
+          redirectToLogin();
+        }
+      }
+    }
+
+    fetchUser();
+  }, []);
+
+  const generalItems = role === "ADMIN" || role === "SUPER_ADMIN"
+    ? [{ name: "Admin", href: "/admin", icon: ShieldCheck }, ...baseGeneralItems]
+    : baseGeneralItems;
+
+  async function signOut() {
+    if (typeof window !== "undefined") {
+      await apiPost("/auth/logout", {}).catch(() => undefined);
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+  }
 
   return (
-    <aside className="w-64 h-screen max-h-screen bg-[#18412e] text-white flex flex-col fixed left-0 top-0 border-r border-[#015428]/30">
-      {/* Brand */}
-      <div className="h-16 flex items-center px-6 border-b border-white/10">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-accent flex items-center justify-center">
-            <span className="text-white font-bold text-xl leading-none">T</span>
-          </div>
-          <span className="font-bold text-xl tracking-tight">Taxmate</span>
-        </Link>
-      </div>
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[280px] border-r border-[#e2e5dc] bg-[#fbfcf8] px-5 py-6 lg:flex lg:flex-col">
+      <Link href="/" className="flex items-center gap-3">
+        <span className="grid h-11 w-11 place-items-center rounded-full bg-primary text-base font-black text-white">T</span>
+        <span className="text-xl font-black text-[#252a24]">Taxmate</span>
+      </Link>
 
-      {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
-        <div className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 px-2">Menu</div>
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
+      <div className="mt-10 flex-1">
+        <p className="mb-3 px-1 text-xs font-bold uppercase tracking-[0.08em] text-muted">Menu</p>
+        <nav className="grid gap-2">
+          {menuItems.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "flex h-12 items-center gap-3 rounded-[1.25rem] px-4 text-sm font-bold transition",
+                  active ? "bg-primary text-white shadow-[0_12px_28px_rgba(4,118,59,0.18)]" : "text-muted hover:bg-[#eef3e9] hover:text-[#252a24]"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="flex-1">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <p className="mb-3 mt-10 px-1 text-xs font-bold uppercase tracking-[0.08em] text-muted">General</p>
+        <nav className="grid gap-2">
+          {generalItems.map((item) => (
             <Link
-              key={item.href}
+              key={item.name}
               href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-medium text-sm group",
-                isActive 
-                  ? "bg-[#015428] text-white shadow-inner" 
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              )}
+              className="flex h-12 items-center gap-3 rounded-[1.25rem] px-4 text-sm font-bold text-muted transition hover:bg-[#eef3e9] hover:text-[#252a24]"
             >
-              <item.icon className={cn("w-5 h-5", isActive ? "text-accent" : "text-white/50 group-hover:text-white/80")} />
+              <item.icon className="h-5 w-5" />
               {item.name}
             </Link>
-          );
-        })}
+          ))}
+        </nav>
       </div>
 
-      {/* Footer Nav */}
-      <div className="p-4 border-t border-white/10 flex flex-col gap-2">
-        <Link
-          href="/support"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-medium text-sm text-white/70 hover:bg-white/5 hover:text-white group"
-        >
-          <HelpCircle className="w-5 h-5 text-white/50 group-hover:text-white/80" />
-          Support
-        </Link>
-        <button
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-medium text-sm text-red-300 hover:bg-red-500/10 hover:text-red-200 group w-full text-left"
-        >
-          <LogOut className="w-5 h-5 opacity-70 group-hover:opacity-100" />
-          Sign Out
-        </button>
-      </div>
+      <button
+        onClick={signOut}
+        className="flex h-12 items-center gap-3 rounded-[1.25rem] px-4 text-sm font-bold text-muted transition hover:bg-red-50 hover:text-red-600"
+      >
+        <LogOut className="h-5 w-5" />
+        Logout
+      </button>
     </aside>
   );
 }

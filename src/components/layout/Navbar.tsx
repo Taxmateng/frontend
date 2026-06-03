@@ -1,82 +1,95 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { LayoutDashboard, Menu, X } from "lucide-react";
+import { apiGet } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { Wallet, Menu, X } from "lucide-react";
+
+type UserProfile = { id: string };
 
 export function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    async function fetchUser() {
+      try {
+        const data = await apiGet<UserProfile>("/auth/me");
+        setUser(data);
+      } catch {
+        setUser(null);
+      }
+    }
+    fetchUser();
   }, []);
 
+  const links = [
+    { label: "Features", href: "#features" },
+    { label: "How it works", href: "#how-it-works" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "FAQ", href: "#faq" }
+  ];
+
   return (
-    <nav
-      className={cn(
-        "fixed top-0 z-50 w-full transition-all duration-300",
-        isScrolled
-          ? "glass-card py-4"
-          : "bg-transparent py-6"
-      )}
-    >
-      <div className="container mx-auto px-6 max-w-7xl flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-xl leading-none">T</span>
-          </div>
-          <span className="font-bold text-xl tracking-tight text-foreground transition-colors">
-            Taxmate
-          </span>
+    <nav className="fixed left-0 right-0 top-4 z-50 px-4">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between rounded-full border border-white/10 bg-[#0c0f0d]/80 px-4 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+        <Link href="/" className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-black text-primary">T</span>
+          <span className="text-lg font-bold text-white">Taxmate</span>
         </Link>
 
-        {/* Desktop Menu */}
-        <div className="hidden md:flex items-center gap-8">
-          <Link href="#features" className="text-sm font-medium transition-colors text-muted-foreground hover:text-foreground">
-            Features
+        <div className="hidden items-center gap-8 md:flex">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} className="text-sm font-medium text-white/55 transition hover:text-white">
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="hidden items-center gap-3 md:flex">
+          <Link href="/login" className="text-sm font-medium text-white/60 transition hover:text-white">
+            Sign In
           </Link>
-          <Link href="#how-it-works" className="text-sm font-medium transition-colors text-muted-foreground hover:text-foreground">
-            How it Works
-          </Link>
-          <Link href="/dashboard" className="px-5 py-2.5 bg-primary hover:bg-secondary text-white text-sm font-medium rounded-full transition-transform hover:scale-105 active:scale-95 flex items-center gap-2">
-            <Wallet className="w-4 h-4" />
-            Launch App
+          <Link
+            href={user ? "/dashboard" : "/register"}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-[#111411] transition hover:bg-accent"
+          >
+            {user ? <LayoutDashboard className="h-4 w-4" /> : null}
+            {user ? "Dashboard" : "Get Started"}
           </Link>
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button 
-          className="md:hidden p-2"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        <button
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white md:hidden"
+          onClick={() => setIsMobileMenuOpen((value) => !value)}
+          aria-label="Toggle navigation"
         >
-          {isMobileMenuOpen ? (
-            <X className="w-6 h-6 text-foreground" />
-          ) : (
-            <Menu className="w-6 h-6 text-foreground" />
-          )}
+          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Mobile Menu Dropdown */}
-      {isMobileMenuOpen && (
-        <div className="absolute top-full left-0 w-full glass-card border-t border-border p-4 flex flex-col gap-4 shadow-lg md:hidden">
-         <Link href="#features" className="text-foreground font-medium p-2 hover:bg-background rounded" onClick={() => setIsMobileMenuOpen(false)}>
-            Features
-          </Link>
-          <Link href="#how-it-works" className="text-foreground font-medium p-2 hover:bg-background rounded" onClick={() => setIsMobileMenuOpen(false)}>
-            How it Works
-          </Link>
-          <Link href="/dashboard" className="w-full text-center px-5 py-3 bg-primary text-white font-medium rounded-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>
-            Launch App
+      <div
+        className={cn(
+          "mx-auto mt-3 max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#0c0f0d]/95 px-5 text-white shadow-xl backdrop-blur-xl transition-all md:hidden",
+          isMobileMenuOpen ? "max-h-96 py-5 opacity-100" : "max-h-0 py-0 opacity-0"
+        )}
+      >
+        <div className="flex flex-col gap-4">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-white/70">
+              {link.label}
+            </Link>
+          ))}
+          <Link
+            href={user ? "/dashboard" : "/register"}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-white text-sm font-bold text-[#111411]"
+          >
+            {user ? "Open Dashboard" : "Get Started"}
           </Link>
         </div>
-      )}
+      </div>
     </nav>
   );
 }
