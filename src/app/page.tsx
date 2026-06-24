@@ -75,7 +75,7 @@ export default function Home() {
 
               <div className="mt-12 flex flex-wrap items-center justify-center gap-2 text-sm text-white/45 lg:justify-start">
                 <BadgeCheck className="h-4 w-4 text-primary" />
-                Demo mode supports mocked TINs and integrations.
+                Secure, verifiable tax records for every Nigerian taxpayer.
               </div>
             </div>
 
@@ -187,8 +187,8 @@ export default function Home() {
         <section id="pricing" className="px-4 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className="text-4xl font-black md:text-5xl">Demo plans for every taxpayer type</h2>
-              <p className="mt-4 text-lg text-white/50">Use the demo freely while integrations are configured for live rollout.</p>
+              <h2 className="text-4xl font-black md:text-5xl">Plans for every taxpayer type</h2>
+              <p className="mt-4 text-lg text-white/50">Free to use while integrations are configured for live rollout.</p>
             </div>
             <div className="mt-12 grid gap-5 md:grid-cols-3">
               {[
@@ -219,7 +219,7 @@ export default function Home() {
               <FileCheck2 className="h-8 w-8" />
             </div>
             <h2 className="text-4xl font-black md:text-6xl">Ready to make tax records easier to trust?</h2>
-            <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-white/50">Start with mocked TINs, run the complete demo flow, then connect production credentials when the operations are ready.</p>
+            <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-white/50">Run the complete registration flow, then connect production credentials when your operations are ready.</p>
             <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
               <Link href="/register" className="inline-flex h-14 items-center justify-center gap-3 rounded-full bg-white px-7 font-bold text-[#111411]">
                 Register for Free
@@ -244,7 +244,7 @@ export default function Home() {
           </div>
           {[
             ["Product", "Dashboard", "Payments", "Receipts"],
-            ["Resources", "Docs", "Demo data", "Security"],
+            ["Resources", "Docs", "Guides", "Security"],
             ["Company", "About", "Support", "Contact"]
           ].map(([heading, ...links]) => (
             <div key={heading}>

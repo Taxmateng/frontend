@@ -58,7 +58,6 @@ export default function BusinessRegisterPage() {
   const [preview, setPreview] = useState<{ companyName?: string; rcNumber?: string } | undefined>();
 
   const [tin, setTin] = useState("");
-  const [availableTins, setAvailableTins] = useState<AvailableTin[]>([]);
   const [password, setPassword] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
   const [branchAddress, setBranchAddress] = useState("");
@@ -98,39 +97,32 @@ export default function BusinessRegisterPage() {
   }, [step, jobId, businessStatus]);
 
   useEffect(() => {
-    if (step !== 4) {
+    if (step !== 4 || tin) {
       return;
     }
 
-    async function fetchAvailableTins() {
+    async function assignTin() {
       try {
         const response = await apiGet<{ items: AvailableTin[] }>("/identity/available-tins?type=BUSINESS");
-        setAvailableTins(response.items);
-        if (!tin && response.items[0]) {
-          setTin(response.items[0].tin);
+        const next = response.items[0];
+        if (!next) {
+          toast.error("No TIN is currently available. Please try again shortly.");
+          return;
         }
+        setTin(next.tin);
+        await apiPost("/identity/reserve-tin", {
+          type: "BUSINESS",
+          tin: next.tin,
+          email,
+          registrationSessionToken
+        });
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Unable to load mocked business TINs");
+        toast.error(error instanceof Error ? error.message : "Unable to assign a TIN");
       }
     }
 
-    fetchAvailableTins();
-  }, [step, tin]);
-
-  async function reserveTin(nextTin: string) {
-    setTin(nextTin);
-    try {
-      await apiPost("/identity/reserve-tin", {
-        type: "BUSINESS",
-        tin: nextTin,
-        email,
-        registrationSessionToken
-      });
-      toast.success("TIN reserved for this business registration");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to reserve TIN");
-    }
-  }
+    assignTin();
+  }, [step, tin, email, registrationSessionToken]);
 
   async function onSendOtp(event: FormEvent) {
     event.preventDefault();
@@ -398,27 +390,6 @@ export default function BusinessRegisterPage() {
                   <div>
                     <p className="text-sm font-bold text-slate-800">Verified Business Info</p>
                     <p className="text-sm text-slate-600 mt-0.5">{preview?.companyName ?? "Company"} (RC: {preview?.rcNumber ?? rcNumber})</p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-slate-700">Available Mock Business TIN</label>
-                  <div className="grid gap-3">
-                    {availableTins.map((item) => (
-                      <button
-                        key={item.tin}
-                        type="button"
-                        onClick={() => reserveTin(item.tin)}
-                        className={`rounded-2xl border px-4 py-3 text-left transition-all ${
-                          tin === item.tin
-                            ? "border-primary bg-accent text-primary ring-2 ring-primary/15"
-                            : "border-slate-200 bg-slate-50/50 text-slate-800 hover:border-primary/40"
-                        }`}
-                      >
-                        <span className="block font-mono text-sm font-black">{item.tin}</span>
-                        <span className="mt-1 block text-xs font-bold text-slate-500">{item.label}{item.linkedIdentifier ? ` • RC ${item.linkedIdentifier}` : ""}</span>
-                      </button>
-                    ))}
                   </div>
                 </div>
 
