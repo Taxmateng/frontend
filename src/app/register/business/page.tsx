@@ -7,6 +7,7 @@ import { toast } from "@/lib/toast";
 import { ArrowLeft, CheckCircle2, Loader2, Building2 } from "lucide-react";
 import Link from "next/link";
 import { RegistrationProgress, type RegPhase } from "@/components/RegistrationProgress";
+import { PasswordInput } from "@/components/PasswordInput";
 
 type VerifyOtpResponse = {
   registrationSessionToken: string;
@@ -440,7 +441,7 @@ export default function BusinessRegisterPage() {
                   <input value={shareCapital} onChange={(event) => setShareCapital(event.target.value)} placeholder="Share Capital (₦)" className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50" required />
                 </div>
                 
-                <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Account Password" className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50" minLength={8} required />
+                <PasswordInput value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Account Password" className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50" minLength={8} required autoComplete="new-password" />
                 
                 <button
                   disabled={regPhase === "running"}
