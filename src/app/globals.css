@@ -70,3 +70,17 @@ select,
 textarea {
   letter-spacing: 0;
 }
+
+/* Clickable elements show a pointer to distinguish them from static content. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a[href],
+label[for],
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}

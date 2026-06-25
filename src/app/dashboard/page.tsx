@@ -178,7 +178,7 @@ export default function DashboardIndex() {
             <div className="flex h-72 items-end gap-8 px-4">
               {activity.map((item) => (
                 <div key={item.key} className="flex flex-1 flex-col items-center gap-3">
-                  <span className="w-full rounded-t-[1rem] bg-primary/80" style={{ height: `${item.height}%` }} />
+                  <span className="w-full rounded-t-[1rem] bg-primary/80" style={{ height: `${Math.max(6, item.height * 2)}px` }} />
                   <span className="text-lg font-bold text-muted">{item.label}</span>
                 </div>
               ))}
