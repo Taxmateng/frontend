@@ -4,12 +4,22 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { apiGet, apiPost } from "@/lib/api";
 import { toast } from "@/lib/toast";
-import { ArrowLeft, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { RegistrationProgress, type RegPhase } from "@/components/RegistrationProgress";
 
 type VerifyOtpResponse = {
   registrationSessionToken: string;
   expiresAt: string;
+};
+
+type IdentityPreview = {
+  firstname?: string;
+  lastname?: string;
+  middlename?: string;
+  birthdate?: string;
+  gender?: string;
+  phone?: string;
 };
 
 type RegisterResponse = {
@@ -39,6 +49,10 @@ export default function IndividualRegisterPage() {
   const [nin, setNin] = useState("");
   const [tin, setTin] = useState("");
   const [password, setPassword] = useState("");
+  const [identity, setIdentity] = useState<IdentityPreview | null>(null);
+  const [verifyingNin, setVerifyingNin] = useState(false);
+  const [regPhase, setRegPhase] = useState<RegPhase>("idle");
+  const [regError, setRegError] = useState<string | undefined>();
 
   useEffect(() => {
     if (step !== 3 || tin) {
@@ -127,9 +141,27 @@ export default function IndividualRegisterPage() {
     }
   }
 
+  async function onVerifyNin() {
+    if (nin.trim().length < 10) {
+      toast.error("Enter a valid 11-digit NIN");
+      return;
+    }
+    setVerifyingNin(true);
+    try {
+      const data = await apiPost<IdentityPreview>("/identity/verify-nin", { nin });
+      setIdentity(data);
+      toast.success("Identity matched");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not verify this NIN");
+    } finally {
+      setVerifyingNin(false);
+    }
+  }
+
   async function onRegister(event: FormEvent) {
     event.preventDefault();
-    setLoading(true);
+    setRegError(undefined);
+    setRegPhase("running");
 
     try {
       const response = await apiPost<RegisterResponse>("/auth/register/individual", {
@@ -142,13 +174,15 @@ export default function IndividualRegisterPage() {
 
       if (response.success) {
         localStorage.setItem("token", response.accessToken);
-        toast.success("Registration complete! Welcome to Taxmate.");
-        router.push(response.redirectTo || "/dashboard");
+        setRegPhase("success");
+        setTimeout(() => router.push(response.redirectTo || "/dashboard"), 1200);
+      } else {
+        setRegPhase("error");
+        setRegError("Registration did not complete. Please try again.");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Registration failed");
-    } finally {
-      setLoading(false);
+      setRegPhase("error");
+      setRegError(err instanceof Error ? err.message : "Registration failed");
     }
   }
 
@@ -273,15 +307,43 @@ export default function IndividualRegisterPage() {
               <form className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500" onSubmit={onRegister}>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">National Identity Number (NIN)</label>
-                  <input
-                    value={nin}
-                    onChange={(event) => setNin(event.target.value)}
-                    placeholder="E.g. 22515263226"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm"
-                    required
-                  />
-                  <p className="mt-2 text-xs text-slate-500 font-medium">Required for VerifyMe identity checks.</p>
+                  <div className="flex gap-2">
+                    <input
+                      value={nin}
+                      onChange={(event) => { setNin(event.target.value); setIdentity(null); }}
+                      placeholder="E.g. 22515263226"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={onVerifyNin}
+                      disabled={verifyingNin || nin.trim().length < 10}
+                      className="shrink-0 rounded-2xl border border-primary/30 bg-accent px-5 font-bold text-primary disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                    >
+                      {verifyingNin ? <Loader2 className="w-5 h-5 animate-spin" /> : identity ? "Re-check" : "Verify"}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500 font-medium">Verify to confirm the identity on record before completing registration.</p>
                 </div>
+
+                {identity ? (
+                  <div className="rounded-2xl border border-primary/20 bg-accent/50 p-4">
+                    <div className="flex items-center gap-2 text-sm font-black text-primary">
+                      <BadgeCheck className="w-4 h-4" />
+                      Verified Identity
+                    </div>
+                    <p className="mt-2 text-base font-black text-slate-800">
+                      {[identity.firstname, identity.middlename, identity.lastname].filter(Boolean).join(" ")}
+                    </p>
+                    <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-semibold text-slate-500">
+                      {identity.gender ? <span>Gender: {identity.gender}</span> : null}
+                      {identity.birthdate ? <span>DOB: {identity.birthdate}</span> : null}
+                      {identity.phone ? <span>Phone: {identity.phone}</span> : null}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Password</label>
                   <input
@@ -296,16 +358,19 @@ export default function IndividualRegisterPage() {
                 </div>
 
                 <button
-                  disabled={loading || !nin || !tin || !password}
+                  disabled={!nin || !tin || !password || !identity}
                   className="w-full mt-4 rounded-2xl bg-slate-800 px-5 py-4 font-bold text-white hover:bg-slate-900 focus:ring-4 focus:ring-slate-300 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg flex items-center justify-center gap-2"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Registration"}
+                  Complete Registration
                 </button>
+                <p className="text-center text-xs font-medium text-slate-400">Verify your NIN to enable registration.</p>
               </form>
             )}
           </div>
         </div>
       </div>
+
+      <RegistrationProgress phase={regPhase} errorMessage={regError} onClose={() => setRegPhase("idle")} />
     </div>
   );
 }
