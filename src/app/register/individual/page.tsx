@@ -30,6 +30,8 @@ export default function IndividualRegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -37,40 +39,59 @@ export default function IndividualRegisterPage() {
   const [nin, setNin] = useState("");
   const [tin, setTin] = useState("");
   const [password, setPassword] = useState("");
-  const [availableTins, setAvailableTins] = useState<AvailableTin[]>([]);
 
   useEffect(() => {
-    if (step !== 3) {
+    if (step !== 3 || tin) {
       return;
     }
 
-    async function fetchAvailableTins() {
+    async function assignTin() {
       try {
         const response = await apiGet<{ items: AvailableTin[] }>("/identity/available-tins?type=INDIVIDUAL");
-        setAvailableTins(response.items);
-        if (!tin && response.items[0]) {
-          setTin(response.items[0].tin);
+        const next = response.items[0];
+        if (!next) {
+          toast.error("No TIN is currently available. Please try again shortly.");
+          return;
         }
+        setTin(next.tin);
+        await apiPost("/identity/reserve-tin", {
+          type: "INDIVIDUAL",
+          tin: next.tin,
+          email,
+          registrationSessionToken
+        });
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Unable to load mocked TINs");
+        toast.error(error instanceof Error ? error.message : "Unable to assign a TIN");
       }
     }
 
-    fetchAvailableTins();
-  }, [step, tin]);
+    assignTin();
+  }, [step, tin, email, registrationSessionToken]);
 
-  async function reserveTin(nextTin: string) {
-    setTin(nextTin);
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      return;
+    }
+    const timer = setInterval(() => {
+      setResendCooldown((seconds) => (seconds <= 1 ? 0 : seconds - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  async function onResendOtp() {
+    if (resending || resendCooldown > 0) {
+      return;
+    }
+    setResending(true);
     try {
-      await apiPost("/identity/reserve-tin", {
-        type: "INDIVIDUAL",
-        tin: nextTin,
-        email,
-        registrationSessionToken
-      });
-      toast.success("TIN reserved for this registration");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to reserve TIN");
+      await apiPost<{ message: string; debugOtp?: string }>("/auth/send-otp", { email });
+      setOtp("");
+      setResendCooldown(30);
+      toast.success("A new OTP has been sent to your email.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to resend OTP");
+    } finally {
+      setResending(false);
     }
   }
 
@@ -81,6 +102,7 @@ export default function IndividualRegisterPage() {
     try {
       await apiPost<{ message: string; debugOtp?: string }>("/auth/send-otp", { email });
       setStep(2);
+      setResendCooldown(30);
       toast.success("OTP sent to your email!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send OTP");
@@ -149,7 +171,7 @@ export default function IndividualRegisterPage() {
               <Sparkles className="w-8 h-8" />
             </div>
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Individual Registration</h1>
-            <p className="mt-3 text-slate-500 font-medium">Verify your identity and set up your web3 tax profile.</p>
+            <p className="mt-3 text-slate-500 font-medium">Verify your identity and set up your tax profile.</p>
           </div>
 
           {/* Progress Stepper */}
@@ -229,6 +251,21 @@ export default function IndividualRegisterPage() {
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify OTP"}
                 </button>
+                <p className="text-center text-sm font-medium text-slate-500">
+                  Didn&apos;t get the code or it expired?{" "}
+                  <button
+                    type="button"
+                    onClick={onResendOtp}
+                    disabled={resending || resendCooldown > 0}
+                    className="font-bold text-primary hover:text-secondary disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:text-primary transition-colors"
+                  >
+                    {resending
+                      ? "Sending..."
+                      : resendCooldown > 0
+                        ? `Resend in ${resendCooldown}s`
+                        : "Resend OTP"}
+                  </button>
+                </p>
               </form>
             )}
 
@@ -245,29 +282,6 @@ export default function IndividualRegisterPage() {
                   />
                   <p className="mt-2 text-xs text-slate-500 font-medium">Required for VerifyMe identity checks.</p>
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Available Mock TIN</label>
-                  <div className="grid gap-3">
-                    {availableTins.map((item) => (
-                      <button
-                        key={item.tin}
-                        type="button"
-                        onClick={() => reserveTin(item.tin)}
-                        className={`rounded-2xl border px-5 py-4 text-left transition-all ${
-                          tin === item.tin
-                            ? "border-primary bg-accent text-primary ring-2 ring-primary/15"
-                            : "border-slate-200 bg-slate-50/50 text-slate-800 hover:border-primary/40"
-                        }`}
-                      >
-                        <span className="block font-mono text-sm font-black">{item.tin}</span>
-                        <span className="mt-1 block text-xs font-bold text-slate-500">{item.label}{item.linkedIdentifier ? ` • NIN ${item.linkedIdentifier}` : ""}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {!availableTins.length ? <p className="mt-2 text-xs font-medium text-slate-500">No mocked TINs are currently available.</p> : null}
-                </div>
-
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Password</label>
                   <input

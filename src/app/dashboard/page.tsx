@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ArrowUpRight, BadgeCheck, CalendarClock, FileWarning, ReceiptText, ShieldCheck, WalletCards } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiGet, isUnauthorizedError, redirectToLogin } from "@/lib/api";
@@ -36,10 +37,10 @@ type TaxItem = {
   isActive: boolean;
 };
 
-const summaryCards: { label: string; icon: LucideIcon; kind: "confirmed" | "pending" | "tax-items" }[] = [
-  { label: "Confirmed Receipts", icon: ReceiptText, kind: "confirmed" },
-  { label: "Pending Payments", icon: FileWarning, kind: "pending" },
-  { label: "Active Tax Items", icon: ShieldCheck, kind: "tax-items" }
+const summaryCards: { label: string; icon: LucideIcon; kind: "confirmed" | "pending" | "tax-items"; href: string; caption: string }[] = [
+  { label: "Confirmed Receipts", icon: ReceiptText, kind: "confirmed", href: "/dashboard/payments", caption: "View receipts" },
+  { label: "Pending Payments", icon: FileWarning, kind: "pending", href: "/dashboard/payments", caption: "Awaiting confirmation" },
+  { label: "Active Tax Items", icon: ShieldCheck, kind: "tax-items", href: "/dashboard/tax-items", caption: "Manage tax items" }
 ];
 
 export default function DashboardIndex() {
@@ -146,17 +147,24 @@ export default function DashboardIndex() {
             <p className="mt-8 flex items-center gap-2 text-sm font-semibold text-white/75"><ArrowUpRight className="h-4 w-4" /> Confirmed receipts only</p>
           </article>
 
-          {summaryCards.map(({ label, icon: Icon, kind }) => {
+          {summaryCards.map(({ label, icon: Icon, kind, href, caption }) => {
             const value = kind === "confirmed" ? confirmedPayments.length : kind === "pending" ? pendingPayments.length : taxItems.filter((item) => item.isActive).length;
             return (
-              <article key={label} className="rounded-[1.5rem] border border-[#e2e5dc] bg-white p-6 shadow-[0_10px_24px_rgba(31,36,30,0.06)]">
+              <Link
+                key={label}
+                href={href}
+                className="group rounded-[1.5rem] border border-[#e2e5dc] bg-white p-6 shadow-[0_10px_24px_rgba(31,36,30,0.06)] transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_16px_30px_rgba(31,36,30,0.1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
                 <div className="mb-12 flex items-start justify-between">
                   <p className="text-sm font-black text-muted">{label}</p>
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-white"><Icon className="h-4 w-4" /></span>
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-white transition group-hover:scale-105"><Icon className="h-4 w-4" /></span>
                 </div>
                 <p className="text-4xl font-black text-[#252a24]">{value}</p>
-                <p className="mt-8 text-sm font-semibold text-muted">{label === "Pending Payments" ? "Awaiting confirmation" : "Synced with profile"}</p>
-              </article>
+                <p className="mt-8 flex items-center gap-1.5 text-sm font-semibold text-muted transition-colors group-hover:text-primary">
+                  {caption}
+                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </p>
+              </Link>
             );
           })}
         </div>

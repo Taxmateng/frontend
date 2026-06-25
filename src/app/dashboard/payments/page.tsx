@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, ExternalLink, FileWarning, ReceiptText } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Clock3, ExternalLink, FileWarning, Loader2, ReceiptText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiGet, isUnauthorizedError, redirectToLogin } from "@/lib/api";
+import { InvoiceModal } from "@/components/invoice-modal";
 
 type PaymentItem = {
   id: string;
@@ -16,6 +17,8 @@ type PaymentItem = {
   receiptUrl?: string | null;
   txHash?: string | null;
 };
+
+const EXPLORER_TX_URL = `${process.env.NEXT_PUBLIC_EXPLORER_URL ?? "https://sepolia.basescan.org"}/tx/`;
 
 const filters = ["ALL", "PENDING", "CONFIRMED", "FAILED"];
 const statCards: { label: string; icon: LucideIcon; kind: "confirmed" | "pending" | "failed" }[] = [
@@ -39,24 +42,38 @@ export default function PaymentsPage() {
   const [filter, setFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<PaymentItem | null>(null);
+
+  const loadPayments = useCallback(async () => {
+    try {
+      const data = await apiGet<{ items: PaymentItem[] }>("/user/payment-history");
+      setRows(data.items);
+      setError(null);
+    } catch (fetchError) {
+      if (isUnauthorizedError(fetchError)) {
+        redirectToLogin();
+        return;
+      }
+      setError(fetchError instanceof Error ? fetchError.message : "Unable to load payment history");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchPayments() {
-      try {
-        const data = await apiGet<{ items: PaymentItem[] }>("/user/payment-history");
-        setRows(data.items);
-      } catch (fetchError) {
-        if (isUnauthorizedError(fetchError)) {
-          redirectToLogin();
-          return;
-        }
-        setError(fetchError instanceof Error ? fetchError.message : "Unable to load payment history");
-      } finally {
-        setLoading(false);
-      }
+    loadPayments();
+  }, [loadPayments]);
+
+  // While any payment is still settling or recording on-chain, refresh live so
+  // the user sees PENDING -> PAID -> CONFIRMED without reloading.
+  const hasInFlight = useMemo(() => rows.some((row) => row.status === "PENDING" || row.status === "PAID"), [rows]);
+  useEffect(() => {
+    if (!hasInFlight) {
+      return;
     }
-    fetchPayments();
-  }, []);
+    const interval = setInterval(loadPayments, 5000);
+    return () => clearInterval(interval);
+  }, [hasInFlight, loadPayments]);
 
   const filteredRows = useMemo(() => {
     if (filter === "ALL") {
@@ -128,7 +145,11 @@ export default function PaymentsPage() {
             </thead>
             <tbody>
               {filteredRows.length ? filteredRows.map((row) => (
-                <tr key={row.id} className="border-b border-[#f0f2ec] last:border-0">
+                <tr
+                  key={row.id}
+                  onClick={() => setSelected(row)}
+                  className="cursor-pointer border-b border-[#f0f2ec] transition hover:bg-[#f7f8f4] last:border-0"
+                >
                   <td className="p-5">
                     <p className="font-black">{row.taxItemName}</p>
                     <p className="mt-1 text-xs font-bold text-muted">{row.category ?? "Tax obligation"}</p>
@@ -138,19 +159,42 @@ export default function PaymentsPage() {
                   <td className="p-5 font-bold text-muted">{new Date(row.createdAt).toLocaleDateString("en-NG")}</td>
                   <td className="p-5">
                     <span className={`inline-flex rounded-full px-4 py-2 text-xs font-black ${statusClass(row.status)}`}>{row.status}</span>
-                  </td>
-                  <td className="p-5 text-right">
-                    {row.receiptUrl || row.txHash ? (
-                      <a href={row.receiptUrl ?? "#"} className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-4 text-xs font-black text-primary">
-                        <ExternalLink className="h-4 w-4" />
-                        View
-                      </a>
-                    ) : (
-                      <span className="inline-flex h-10 items-center gap-2 rounded-full bg-[#f7f8f4] px-4 text-xs font-black text-muted">
-                        <ReceiptText className="h-4 w-4" />
-                        Pending
+                    {row.status === "PAID" ? (
+                      <span className="mt-1 flex items-center gap-1.5 text-xs font-bold text-amber-700">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Recording on-chain…
                       </span>
-                    )}
+                    ) : row.status === "CONFIRMED" && row.txHash ? (
+                      <span className="mt-1 flex items-center gap-1.5 text-xs font-bold text-primary">
+                        <CheckCircle2 className="h-3 w-3" />
+                        On-chain
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="p-5">
+                    <div className="flex items-center justify-end gap-2">
+                      {["PENDING", "FAILED", "EXPIRED"].includes(row.status) ? (
+                        <button
+                          onClick={(event) => { event.stopPropagation(); setSelected(row); }}
+                          className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-xs font-black text-white"
+                        >
+                          <ReceiptText className="h-4 w-4" />
+                          Pay
+                        </button>
+                      ) : null}
+                      {row.receiptUrl ? (
+                        <a href={row.receiptUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-4 text-xs font-black text-primary" title="IPFS receipt">
+                          <ReceiptText className="h-4 w-4" />
+                          Receipt
+                        </a>
+                      ) : null}
+                      {row.txHash ? (
+                        <a href={`${EXPLORER_TX_URL}${row.txHash}`} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="inline-flex h-10 items-center gap-2 rounded-full bg-[#f3f5ef] px-4 text-xs font-black text-[#252a24]" title="On-chain transaction">
+                          <ExternalLink className="h-4 w-4" />
+                          Tx
+                        </a>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               )) : (
@@ -164,6 +208,14 @@ export default function PaymentsPage() {
           </table>
         </div>
       </div>
+
+      {selected ? (
+        <InvoiceModal
+          invoice={selected}
+          onClose={() => setSelected(null)}
+          onChange={loadPayments}
+        />
+      ) : null}
     </div>
   );
 }
