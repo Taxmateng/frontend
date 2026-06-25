@@ -6,6 +6,7 @@ import { apiGet, apiPost } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { ArrowLeft, CheckCircle2, Loader2, Building2 } from "lucide-react";
 import Link from "next/link";
+import { RegistrationProgress, type RegPhase } from "@/components/RegistrationProgress";
 
 type VerifyOtpResponse = {
   registrationSessionToken: string;
@@ -16,13 +17,24 @@ type BusinessSubmitResponse = {
   status: "PENDING" | "COMPLETED" | "FAILED";
 };
 
+type VerifiedBusiness = {
+  companyName?: string;
+  rcNumber?: string;
+  companyType?: string;
+  street?: string;
+  city?: string;
+  lga?: string;
+  state?: string;
+  country?: string;
+  applicantFirstname?: string;
+  applicantLastname?: string;
+  applicantPhone?: string;
+};
+
 type BusinessStatusResponse = {
   jobId: string;
   status: "PENDING" | "COMPLETED" | "FAILED";
-  verifiedPreview?: {
-    companyName?: string;
-    rcNumber?: string;
-  };
+  verifiedPreview?: VerifiedBusiness;
 };
 
 type CompleteResponse = {
@@ -55,7 +67,9 @@ export default function BusinessRegisterPage() {
 
   const [jobId, setJobId] = useState("");
   const [businessStatus, setBusinessStatus] = useState<"PENDING" | "COMPLETED" | "FAILED">("PENDING");
-  const [preview, setPreview] = useState<{ companyName?: string; rcNumber?: string } | undefined>();
+  const [preview, setPreview] = useState<VerifiedBusiness | undefined>();
+  const [regPhase, setRegPhase] = useState<RegPhase>("idle");
+  const [regError, setRegError] = useState<string | undefined>();
 
   const [tin, setTin] = useState("");
   const [password, setPassword] = useState("");
@@ -81,7 +95,19 @@ export default function BusinessRegisterPage() {
         setPreview(response.verifiedPreview);
 
         if (response.status === "COMPLETED") {
-           toast.success("Business verification successful!");
+          // Pre-populate the fields VerifyMe returned; leave the rest for the user.
+          const v = response.verifiedPreview;
+          if (v) {
+            setCompanyEmail((current) => current || email);
+            if (v.street) {
+              setHeadOfficeAddress((current) => current || v.street!);
+              setBranchAddress((current) => current || v.street!);
+            }
+            if (v.city) setCity((current) => current || v.city!);
+            if (v.lga) setLga((current) => current || v.lga!);
+            if (v.state) setStateName((current) => current || v.state!);
+          }
+          toast.success("Business verification successful!");
           setStep(4);
         }
 
@@ -94,7 +120,7 @@ export default function BusinessRegisterPage() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [step, jobId, businessStatus]);
+  }, [step, jobId, businessStatus, email]);
 
   useEffect(() => {
     if (step !== 4 || tin) {
@@ -184,7 +210,8 @@ export default function BusinessRegisterPage() {
 
   async function onComplete(event: FormEvent) {
     event.preventDefault();
-    setLoading(true);
+    setRegError(undefined);
+    setRegPhase("running");
 
     try {
       const response = await apiPost<CompleteResponse>("/auth/register/business/complete", {
@@ -205,13 +232,15 @@ export default function BusinessRegisterPage() {
 
       if (response.success) {
         localStorage.setItem("token", response.accessToken);
-        toast.success("Registration complete! Welcome to Taxmate.");
-        router.push(response.redirectTo || "/dashboard");
+        setRegPhase("success");
+        setTimeout(() => router.push(response.redirectTo || "/dashboard"), 1200);
+      } else {
+        setRegPhase("error");
+        setRegError("Registration did not complete. Please try again.");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Business registration failed");
-    } finally {
-      setLoading(false);
+      setRegPhase("error");
+      setRegError(err instanceof Error ? err.message : "Business registration failed");
     }
   }
 
@@ -414,16 +443,18 @@ export default function BusinessRegisterPage() {
                 <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Account Password" className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50" minLength={8} required />
                 
                 <button
-                  disabled={loading}
+                  disabled={regPhase === "running"}
                   className="w-full mt-4 rounded-2xl bg-slate-800 px-5 py-4 font-bold text-white hover:bg-slate-900 focus:ring-4 focus:ring-slate-300 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg flex items-center justify-center gap-2"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Registration"}
+                  Complete Registration
                 </button>
               </form>
             )}
           </div>
         </div>
       </div>
+
+      <RegistrationProgress phase={regPhase} errorMessage={regError} onClose={() => setRegPhase("idle")} />
     </div>
   );
 }
