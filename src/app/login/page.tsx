@@ -19,10 +19,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await apiPost<{ accessToken: string }>("/auth/login", { email, password });
+      const data = await apiPost<{ accessToken: string; user?: { role?: string } }>("/auth/login", { email, password });
       localStorage.setItem("token", data.accessToken);
       toast.success("Login successful!");
-      router.push("/dashboard");
+      const isAdmin = data.user?.role === "ADMIN" || data.user?.role === "SUPER_ADMIN";
+      router.push(isAdmin ? "/admin" : "/dashboard");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid email or password");
     } finally {
