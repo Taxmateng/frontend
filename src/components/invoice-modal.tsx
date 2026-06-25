@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Loader2, ReceiptText, X } from "lucide-react";
-import { apiPost, isUnauthorizedError, redirectToLogin } from "@/lib/api";
+import { Download, ExternalLink, Loader2, ReceiptText, X } from "lucide-react";
+import { apiDownload, apiPost, isUnauthorizedError, redirectToLogin } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import {
   EXPLORER_TX_URL,
@@ -193,6 +193,18 @@ export function InvoiceModal({
     }
   }
 
+  async function downloadReceipt() {
+    try {
+      await apiDownload(`/payments/receipt/${invoice.id}/download`, `taxmate-receipt-${invoice.id}.json`);
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        redirectToLogin();
+        return;
+      }
+      toast.error(error instanceof Error ? error.message : "Unable to download receipt");
+    }
+  }
+
   const showDetails = view === "details";
   const payable = ["PENDING", "FAILED", "EXPIRED"].includes(invoice.status);
 
@@ -298,6 +310,10 @@ export function InvoiceModal({
                       View IPFS receipt
                     </a>
                   ) : null}
+                  <button onClick={downloadReceipt} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] border border-[#e2e5dc] text-sm font-black text-[#252a24]">
+                    <Download className="h-4 w-4" />
+                    Download receipt
+                  </button>
                   <Link href="/dashboard/payments" onClick={onClose} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[1rem] bg-[#f3f5ef] text-sm font-black text-[#252a24]">
                     Back to Payment History
                   </Link>

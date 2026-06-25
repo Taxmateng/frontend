@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, ExternalLink, FileWarning, Loader2, ReceiptText } from "lucide-react";
+import { CheckCircle2, Clock3, Download, ExternalLink, FileWarning, Loader2, ReceiptText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { apiGet, isUnauthorizedError, redirectToLogin } from "@/lib/api";
+import { apiDownload, apiGet, isUnauthorizedError, redirectToLogin } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import { InvoiceModal } from "@/components/invoice-modal";
 
 type PaymentItem = {
@@ -59,6 +60,18 @@ export default function PaymentsPage() {
       setLoading(false);
     }
   }, []);
+
+  async function downloadReceipt(id: string) {
+    try {
+      await apiDownload(`/payments/receipt/${id}/download`, `taxmate-receipt-${id}.json`);
+    } catch (downloadError) {
+      if (isUnauthorizedError(downloadError)) {
+        redirectToLogin();
+        return;
+      }
+      toast.error(downloadError instanceof Error ? downloadError.message : "Unable to download receipt");
+    }
+  }
 
   useEffect(() => {
     loadPayments();
@@ -193,6 +206,16 @@ export default function PaymentsPage() {
                           <ExternalLink className="h-4 w-4" />
                           Tx
                         </a>
+                      ) : null}
+                      {["CONFIRMED", "PAID"].includes(row.status) ? (
+                        <button
+                          onClick={(event) => { event.stopPropagation(); downloadReceipt(row.id); }}
+                          className="inline-flex h-10 items-center gap-2 rounded-full bg-[#f3f5ef] px-4 text-xs font-black text-[#252a24]"
+                          title="Download receipt"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download
+                        </button>
                       ) : null}
                     </div>
                   </td>
