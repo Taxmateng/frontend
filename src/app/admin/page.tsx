@@ -264,7 +264,7 @@ function Overview({ kpis, categories, payments }: { kpis: Kpis; categories: Cate
               {categories.map((c) => (
                 <div key={c.category} className="flex flex-1 flex-col items-center gap-3">
                   <span className="text-xs font-bold text-muted">{c.totalLabel}</span>
-                  <span className="w-full rounded-t-[1rem] bg-primary/80" style={{ height: `${Math.max(8, Math.round((c.total / max) * 100))}%` }} />
+                  <span className="w-full rounded-t-[1rem] bg-primary/80" style={{ height: `${Math.max(8, Math.round((c.total / max) * 180))}px` }} />
                   <span className="text-sm font-black text-muted">{c.category}</span>
                 </div>
               ))}
