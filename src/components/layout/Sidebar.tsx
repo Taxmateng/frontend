@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { BarChart3, CircleHelp, CreditCard, FileText, LayoutDashboard, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
 import { apiGet, apiPost, isUnauthorizedError, redirectToLogin } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/Logo";
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -58,7 +59,7 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[280px] border-r border-[#e2e5dc] bg-[#fbfcf8] px-5 py-6 lg:flex lg:flex-col">
       <Link href="/" className="flex items-center gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-full bg-primary text-base font-black text-white">T</span>
+        <Logo size={44} />
         <span className="text-xl font-black text-[#252a24]">Taxmate</span>
       </Link>
 
