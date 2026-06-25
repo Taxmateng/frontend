@@ -144,3 +144,28 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 export async function apiDelete<T>(path: string): Promise<T> {
   return apiRequest<T>("DELETE", path);
 }
+
+// Downloads an authenticated file response and triggers a browser save dialog.
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "GET",
+    credentials: "include",
+    headers: getAuthHeaders()
+  });
+
+  if (!response.ok) {
+    // Reuse the shared parser so the thrown error carries a clean message.
+    await parseResponse(response, "GET", path);
+    return;
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
