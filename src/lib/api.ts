@@ -42,12 +42,36 @@ export function redirectToLogin(): void {
   window.location.href = "/login";
 }
 
+// Keep user-facing messages clean: never surface a raw response body (JSON/HTML)
+// or an oversized string. Fall back to a friendly, status-based message.
+function friendlyMessage(raw: unknown, status: number): string {
+  const fallback =
+    status === 401
+      ? "Your session has expired. Please log in again."
+      : status === 403
+        ? "You don't have permission to do that."
+        : status === 404
+          ? "We couldn't find what you were looking for."
+          : status >= 500
+            ? "Something went wrong on our end. Please try again."
+            : "Request failed. Please try again.";
+
+  if (typeof raw !== "string") {
+    return fallback;
+  }
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > 200 || /^[[{<]/.test(trimmed)) {
+    return fallback;
+  }
+  return trimmed;
+}
+
 async function parseResponse<T>(response: Response, method: string, path: string): Promise<T> {
   const data = (await response.json().catch(() => ({}))) as T & { message?: string; error?: string };
 
   if (!response.ok) {
     throw new ApiRequestError(
-      data.message ?? data.error ?? `${method} ${path} failed with status ${response.status}`,
+      friendlyMessage(data.message ?? data.error, response.status),
       response.status,
       method,
       path
