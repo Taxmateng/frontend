@@ -6,6 +6,7 @@ import { apiPost } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { ArrowLeft, Loader2, UserCircle } from "lucide-react";
 import Link from "next/link";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -64,13 +65,13 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">Password</label>
-              <input
+              <PasswordInput
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                type="password"
                 placeholder="********"
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm"
                 required
+                autoComplete="current-password"
               />
             </div>
             

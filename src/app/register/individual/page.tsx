@@ -7,6 +7,7 @@ import { toast } from "@/lib/toast";
 import { ArrowLeft, BadgeCheck, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { RegistrationProgress, type RegPhase } from "@/components/RegistrationProgress";
+import { PasswordInput } from "@/components/PasswordInput";
 
 type VerifyOtpResponse = {
   registrationSessionToken: string;
@@ -346,14 +347,14 @@ export default function IndividualRegisterPage() {
 
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Password</label>
-                  <input
+                  <PasswordInput
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    type="password"
                     placeholder="••••••••"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm"
                     required
                     minLength={8}
+                    autoComplete="new-password"
                   />
                 </div>
 
