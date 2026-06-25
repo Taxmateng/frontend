@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BarChart3, Bell, CheckCircle2, CreditCard, FileClock, LayoutDashboard, Search, ShieldCheck, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiGet, isForbiddenError, isUnauthorizedError, redirectToLogin } from "@/lib/api";
+import { Logo } from "@/components/Logo";
 
 type AuthUser = {
   role?: "USER" | "ADMIN" | "SUPER_ADMIN";
@@ -185,7 +186,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background text-[#252a24]">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[280px] border-r border-[#e2e5dc] bg-[#fbfcf8] px-5 py-6 lg:flex lg:flex-col">
         <Link href="/" className="flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-full bg-primary text-base font-black text-white">T</span>
+          <Logo size={44} />
           <span className="text-xl font-black">Taxmate</span>
         </Link>
         <div className="mt-10 flex-1">

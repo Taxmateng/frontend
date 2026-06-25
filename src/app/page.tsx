@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/Navbar";
+import { Logo } from "@/components/Logo";
 import {
   ArrowRight,
   BadgeCheck,
@@ -85,7 +86,7 @@ export default function Home() {
               <div className="rounded-[1.5rem] border border-[#e2e5dc] bg-[#f7f8f4] p-4 text-[#20241f]">
                 <div className="flex items-center justify-between border-b border-[#e2e5dc] pb-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-sm font-black text-white">T</span>
+                    <Logo size={44} />
                     <div>
                       <p className="text-sm font-black">Taxmate Dashboard</p>
                       <p className="text-xs font-medium text-muted">TIN: NG-BIZ-200001</p>
@@ -242,7 +243,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-6xl gap-8 text-muted md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
           <div>
             <div className="mb-5 flex items-center gap-3 text-[#1b1f1a]">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-sm font-black text-white">T</span>
+              <Logo size={40} />
               <span className="text-xl font-black">Taxmate</span>
             </div>
             <p className="max-w-xs leading-7">Modern tax compliance for Nigerian individuals, businesses, and administrators.</p>

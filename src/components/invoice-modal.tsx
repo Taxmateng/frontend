@@ -195,7 +195,7 @@ export function InvoiceModal({
 
   async function downloadReceipt() {
     try {
-      await apiDownload(`/payments/receipt/${invoice.id}/download`, `taxmate-receipt-${invoice.id}.json`);
+      await apiDownload(`/payments/receipt/${invoice.id}/download`, `taxmate-receipt-${invoice.id}.pdf`);
     } catch (error) {
       if (isUnauthorizedError(error)) {
         redirectToLogin();

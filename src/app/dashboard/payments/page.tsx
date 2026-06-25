@@ -63,7 +63,7 @@ export default function PaymentsPage() {
 
   async function downloadReceipt(id: string) {
     try {
-      await apiDownload(`/payments/receipt/${id}/download`, `taxmate-receipt-${id}.json`);
+      await apiDownload(`/payments/receipt/${id}/download`, `taxmate-receipt-${id}.pdf`);
     } catch (downloadError) {
       if (isUnauthorizedError(downloadError)) {
         redirectToLogin();

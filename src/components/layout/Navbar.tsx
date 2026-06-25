@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LayoutDashboard, Menu, X } from "lucide-react";
 import { apiGet } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/Logo";
 
 type UserProfile = { id: string };
 
@@ -35,7 +36,7 @@ export function Navbar() {
     <nav className="fixed left-0 right-0 top-4 z-50 px-4">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between rounded-full border border-[#e2e5dc] bg-white/85 px-4 shadow-[0_12px_40px_-12px_rgba(31,36,30,0.18)] backdrop-blur-xl">
         <Link href="/" className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-black text-white">T</span>
+          <Logo size={40} />
           <span className="text-lg font-bold text-[#1b1f1a]">Taxmate</span>
         </Link>
 
